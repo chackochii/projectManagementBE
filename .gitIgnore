@@ -1,0 +1,55 @@
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Logs
+logs/
+*.log
+*.out
+*.err
+
+# Build output
+dist/
+build/
+.next/
+out/
+coverage/
+
+# Temporary files
+.tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+
+# OS-generated files (Linux/Mac/Windows)
+.DS_Store
+Thumbs.db
+
+# IDE folders
+.vscode/
+.idea/
+
+# TypeScript
+*.tsbuildinfo
+
+# Expo / React Native specific
+.expo/
+.expo-shared/
+android/app/build/
+ios/Pods/
+*.keystore
+
+# Next.js specific
+.next/
+.vercel/

@@ -1,0 +1,23 @@
+{
+  "name": "project-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3",
+    "sequelize": "^6.37.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
