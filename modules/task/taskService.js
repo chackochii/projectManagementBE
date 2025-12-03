@@ -35,6 +35,7 @@ export const updateTaskStatusService = async (taskId, status) => {
   }
 
   task.status = status;
+  task.updatedAt = new Date();
   await task.save();
 
   return task;
