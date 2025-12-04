@@ -131,17 +131,16 @@ export const stopTask = async (req, res) => {
 
 export const getMonthlyReport = async (req, res) => {
     try {
-        let { month } = req.query;
+          let { range, userId, projectId } = req.query;
 
-        // If month is not provided, use current month in YYYY-MM format
-        if (!month) {
+        if (!range) {
             const now = new Date();
             const year = now.getFullYear();
             const mon = String(now.getMonth() + 1).padStart(2, "0");
             month = `${year}-${mon}`;
         }
 
-        const report = await getMonthlyReportService(month);
+        const report = await getMonthlyReportService(range, userId, projectId);
 
         if (report.summary.total === 0) {
             return res.json({ message: "No tasks available for this month", report });
