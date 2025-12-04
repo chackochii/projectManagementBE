@@ -146,101 +146,114 @@ export const stopTaskService = async (taskId, userId) => {
 
 
 
-export const getMonthlyReportService = async (month) => {
-    const startDate = new Date(`${month}-01`);
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + 1);
+export const getMonthlyReportService = async (range, userId, projectId) => {
+  const now = new Date();
+  let startDate, endDate;
 
-    const tasks = await db.Task.findAll({
-        where: {
-            updatedAt: { [Op.between]: [startDate, endDate] }
-        },
-        include: [
-            {
-                model: db.User,
-                as: "assignee",
-                attributes: ["id", "name"]
-            }
-        ],
-    });
+  // ---- DATE RANGE ----
+  if (range === "today") {
+    startDate = new Date(now.setHours(0, 0, 0, 0));
+    endDate = new Date(now.setHours(23, 59, 59, 999));
+  } else if (range === "week") {
+    const day = now.getDay(); // 0=Sunday
+    startDate = new Date(now);
+    startDate.setDate(now.getDate() - day);
+    startDate.setHours(0, 0, 0, 0);
+    endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    endDate.setHours(23, 59, 59, 999);
+  } else {
+    // month
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  }
 
-    if (tasks.length === 0) {
-        return {
-            employees: [],
-            summary: {
-                todo: 0,
-                inProgress: 0,
-                review: 0,
-                done: 0,
-                total: 0,
-                totalHours: 0
-            }
-        };
+  // ---- QUERY TASKS ----
+  const whereClause = {
+    updatedAt: { [Op.between]: [startDate, endDate] },
+  };
+
+  if (userId) whereClause.assigneeId = userId;
+  if (projectId) whereClause.projectId = projectId;
+
+  const tasks = await db.Task.findAll({
+    where: whereClause,
+    include: [
+      {
+        model: db.User,
+        as: "assignee",
+        attributes: ["id", "name"],
+      },
+      {
+        model: db.Project,
+        as: "project",
+        attributes: ["id", "name"],
+      },
+    ],
+  });
+
+  if (tasks.length === 0) {
+    return {
+      employees: [],
+      summary: { todo: 0, inProgress: 0, review: 0, done: 0, total: 0, totalHours: 0 },
+    };
+  }
+
+  // ---- EMPLOYEE REPORT ----
+  const employeeMap = {};
+  let totalHours = 0;
+
+  tasks.forEach((task) => {
+    const empName = task.assignee?.name || "Unassigned";
+
+    if (!employeeMap[empName]) {
+      employeeMap[empName] = {
+        employee: empName,
+        totalTasks: 0,
+        todo: 0,
+        inProgress: 0,
+        review: 0,
+        done: 0,
+        hoursWorked: 0,
+      };
     }
 
-    // ---- EMPLOYEE REPORT ----
-    const employeeMap = {};
-    let totalHours = 0;
+    employeeMap[empName].totalTasks += 1;
 
-    tasks.forEach((task) => {
-        const empName = task.assignee?.name || "Unassigned";
+    // Status count
+    if (task.status === "todo") employeeMap[empName].todo++;
+    if (task.status === "in-progress" || task.status === "review") employeeMap[empName].inProgress++;
+    if (task.status === "review") employeeMap[empName].review++;
+    if (task.status === "done") employeeMap[empName].done++;
 
-        if (!employeeMap[empName]) {
-            employeeMap[empName] = {
-                employee: empName,
-                totalTasks: 0,
-                todo: 0,
-                inProgress: 0,
-                review: 0,
-                done: 0,
-                hoursWorked: 0, // 👈 NEW FIELD
-            };
-        }
+    // Hours worked
+    if (task.startTime && task.endTime) {
+      const diffHours = (new Date(task.endTime) - new Date(task.startTime)) / (1000 * 60 * 60);
+      if (diffHours > 0) {
+        employeeMap[empName].hoursWorked += diffHours;
+        totalHours += diffHours;
+      }
+    }
+  });
 
-        employeeMap[empName].totalTasks += 1;
+  // ---- SUMMARY ----
+  const summary = {
+    todo: tasks.filter((t) => t.status === "todo").length,
+    inProgress: tasks.filter((t) => t.status === "in-progress" || t.status === "review").length,
+    review: tasks.filter((t) => t.status === "review").length,
+    done: tasks.filter((t) => t.status === "done").length,
+    total: tasks.length,
+    totalHours: Number(totalHours.toFixed(2)),
+  };
 
-        // ---- COUNT STATUS ----
-        if (task.status === "todo") employeeMap[empName].todo++;
-        if (task.status === "in-progress" || task.status === "review") employeeMap[empName].inProgress++;
-        if (task.status === "review") employeeMap[empName].review++;
-        if (task.status === "done") employeeMap[empName].done++;
+  const employeeArray = Object.values(employeeMap).map((e) => ({
+    ...e,
+    hoursWorked: Number(e.hoursWorked.toFixed(2)),
+  }));
 
-        // ---- CALCULATE HOURS WORKED ----
-        if (task.startTime && task.endTime) {
-            const start = new Date(task.startTime);
-            const end = new Date(task.endTime);
-
-            const diffMs = end - start;      // difference in milliseconds
-            const diffHours = diffMs / (1000 * 60 * 60); // convert to hours
-
-            if (diffHours > 0) {
-                employeeMap[empName].hoursWorked += diffHours;
-                totalHours += diffHours;
-            }
-        }
-    });
-
-    // ---- SUMMARY REPORT ----
-    const summary = {
-        todo: tasks.filter((t) => t.status === "todo").length,
-        inProgress: tasks.filter((t) => t.status === "in-progress" || t.status === "review").length,
-        review: tasks.filter((t) => t.status === "review").length,
-        done: tasks.filter((t) => t.status === "done").length,
-        total: tasks.length,
-        totalHours: Number(totalHours.toFixed(2)), // 👈 total hours for entire team
-    };
-
-    // Round each employee's hours
-    const employeeArray = Object.values(employeeMap).map((e) => ({
-        ...e,
-        hoursWorked: Number(e.hoursWorked.toFixed(2)),
-    }));
-
-    return {
-        employees: employeeArray,
-        summary,
-    };
+  return { employees: employeeArray, summary };
 };
+
 
 
 
