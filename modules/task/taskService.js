@@ -133,13 +133,13 @@ export const stopTaskService = async (taskId, userId) => {
     0
   );
 
-  const totalHours = totalSeconds / 3600;
+  // const totalHours = totalSeconds / 3600;
 
   // Update task
   return await task.update({
     status: "todo",
     endTime: now,
-    hoursTaken: totalHours, // 🔥 Update new column
+    hoursTaken: totalSeconds, // 🔥 Update new column
   });
 };
 
