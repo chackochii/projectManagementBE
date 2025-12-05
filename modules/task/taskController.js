@@ -134,10 +134,7 @@ export const getMonthlyReport = async (req, res) => {
           let { range, userId, projectId } = req.query;
 
         if (!range) {
-            const now = new Date();
-            const year = now.getFullYear();
-            const mon = String(now.getMonth() + 1).padStart(2, "0");
-            month = `${year}-${mon}`;
+            range = "currentMonth";
         }
 
         const report = await getMonthlyReportService(range, userId, projectId);
