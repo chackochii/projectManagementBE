@@ -1,4 +1,4 @@
-import { getUserWorkHoursService } from "./taskTimeLogService.js";
+import { getUserWorkHoursService, getProjectUserTaskHoursService } from "./taskTimeLogService.js";
 
 export const getUserWorkHours = async (req, res) => {
   try {
@@ -16,3 +16,24 @@ export const getUserWorkHours = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
+
+export const getProjectUserTaskHours = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { userId } = req.query;
+
+    console.log(projectId,userId,"------->")
+
+    const report = await getProjectUserTaskHoursService(projectId, userId);
+
+    return res.json({
+      success: true,
+      projectId,
+      userId: userId || null,
+      tasks: report,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
