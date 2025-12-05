@@ -227,13 +227,12 @@ export const getMonthlyReportService = async (range, userId, projectId) => {
     if (task.status === "done") employeeMap[empName].done++;
 
     // Hours worked
-    if (task.startTime && task.endTime) {
-      const diffHours = (new Date(task.endTime) - new Date(task.startTime)) / (1000 * 60 * 60);
-      if (diffHours > 0) {
-        employeeMap[empName].hoursWorked += diffHours;
-        totalHours += diffHours;
-      }
-    }
+ if (task.hoursTaken && task.hoursTaken > 0) {
+  const hours = task.hoursTaken / 3600; // convert minutes → hours
+  employeeMap[empName].hoursWorked += hours;
+  totalHours += hours;
+}
+
   });
 
   // ---- SUMMARY ----
@@ -243,7 +242,7 @@ export const getMonthlyReportService = async (range, userId, projectId) => {
     review: tasks.filter((t) => t.status === "review").length,
     done: tasks.filter((t) => t.status === "done").length,
     total: tasks.length,
-    totalHours: Number(totalHours.toFixed(2)),
+    totalHours: tasks.totalHours,
   };
 
   const employeeArray = Object.values(employeeMap).map((e) => ({
