@@ -295,3 +295,60 @@ export const getUserTasksGroupedService = async (userId, projectId) => {
     return { success: false, message: "Server error" };
   }
 };
+
+export const assignTaskService = async ({ taskId, assigneeId, user, name }) => {
+  // Fetch task
+  const task = await db.Task.findByPk(taskId);
+
+  if (!task) {
+    const error = new Error("Task not found");
+    error.status = 404;
+    throw error;
+  }
+
+  // Fetch assignee
+
+
+  // Optional: prevent assigning completed tasks
+  if (task.status === "done") {
+    const error = new Error("Cannot assign a completed task");
+    error.status = 400;
+    throw error;
+  }
+
+  // Update task
+  await task.update({
+    assigneeId,
+    name,
+    updatedBy: user?.id,
+  });
+
+  return task;
+};
+
+
+export const unassignTaskService = async ({ taskId, user }) => {
+  const task = await db.Task.findByPk(taskId);
+
+  if (!task) {
+    const error = new Error("Task not found");
+    error.status = 404;
+    throw error;
+  }
+
+  // Optional: prevent unassigning completed tasks
+  if (task.status === "done") {
+    const error = new Error("Cannot unassign a completed task");
+    error.status = 400;
+    throw error;
+  }
+
+  await task.update({
+    assigneeId: null,
+    name: "Unassigned",
+    updatedBy: user?.id,
+  });
+
+  return task;
+};
+
