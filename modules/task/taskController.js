@@ -9,6 +9,8 @@ import {
   stopTaskService,
   getMonthlyReportService,
   getUserTasksGroupedService,
+  unassignTaskService,
+  assignTaskService,
 } from "./taskService.js";
 import { getUserById } from "../user/user.service.js";
 import { Op } from "sequelize";
@@ -173,3 +175,72 @@ export const getUserTasksController = async (req, res) => {
     });
   }
 };
+
+
+export const assignTask = async (req, res) => {
+  try {
+    const { taskId, assigneeId } = req.body;
+
+    if (!taskId || !assigneeId) {
+      return res.status(400).json({
+        error: "taskId and assigneeId are required",
+      });
+    }
+
+      const assignee = await getUserById(assigneeId);
+  if (!assignee) {
+    const error = new Error("User not found");
+    error.status = 404;
+    throw error;
+  }
+
+    const user = req.user;
+
+    const task = await assignTaskService({
+      taskId,
+      assigneeId,
+      user,
+      name:assignee.name
+    });
+
+    return res.json({
+      message: "Task assigned successfully",
+      task,
+    });
+  } catch (err) {
+    return res.status(err.status || 500).json({
+      error: err.message,
+    });
+  }
+};
+
+
+
+export const unassignTask = async (req, res) => {
+  try {
+    const { taskId } = req.body;
+
+    if (!taskId) {
+      return res.status(400).json({
+        error: "taskId is required",
+      });
+    }
+
+    const user = req.user;
+
+    const task = await unassignTaskService({
+      taskId,
+      user,
+    });
+
+    return res.json({
+      message: "Task unassigned successfully",
+      task,
+    });
+  } catch (err) {
+    return res.status(err.status || 500).json({
+      error: err.message,
+    });
+  }
+};
+
