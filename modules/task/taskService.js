@@ -145,27 +145,38 @@ export const stopTaskService = async (taskId, userId) => {
 
 
 
-
-export const getMonthlyReportService = async (range, userId, projectId) => {
+ export const getMonthlyReportService = async (range, userId, projectId) => {
   const now = new Date();
+const utcNow = new Date(now.toISOString());
   let startDate, endDate;
 
   // ---- DATE RANGE ----
   if (range === "today") {
-    startDate = new Date(now.setHours(0, 0, 0, 0));
-    endDate = new Date(now.setHours(23, 59, 59, 999));
+ startDate = new Date(Date.UTC(
+  utcNow.getUTCFullYear(),
+  utcNow.getUTCMonth(),
+  1, 0, 0, 0, 0
+));
+
+endDate = new Date(Date.UTC(
+  utcNow.getUTCFullYear(),
+  utcNow.getUTCMonth() + 1,
+  0, 23, 59, 59, 999
+));
+
+
   } else if (range === "week") {
-    const day = now.getDay(); // 0=Sunday
-    startDate = new Date(now);
-    startDate.setDate(now.getDate() - day);
+    const day = utcNow.getDay(); // 0=Sunday
+    startDate = new Date(utcNow);
+    startDate.setDate(utcNow.getDate() - day);
     startDate.setHours(0, 0, 0, 0);
     endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 6);
     endDate.setHours(23, 59, 59, 999);
   } else {
     // month
-    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    startDate = new Date(utcNow.getFullYear(), utcNow.getMonth(), 1);
+    endDate = new Date(utcNow.getFullYear(), utcNow.getMonth() + 1, 0, 23, 59, 59, 999);
   }
 
   // ---- QUERY TASKS ----
@@ -252,8 +263,6 @@ export const getMonthlyReportService = async (range, userId, projectId) => {
 
   return { employees: employeeArray, summary };
 };
-
-
 
 
 // const Task = db.Task;
