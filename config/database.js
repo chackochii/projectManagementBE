@@ -31,7 +31,7 @@ export const sequelize = new Sequelize(
 
    dialectOptions: {
       ssl: {
-        require: false,
+        require: true,
         rejectUnauthorized: false,
       },
     },
