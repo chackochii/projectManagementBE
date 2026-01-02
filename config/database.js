@@ -85,8 +85,8 @@ export const connectDB = async () => {
       console.log("✅  Database synchronized (DEV MODE)");
     }
   } catch (error) {
-    console.error("❌ DB connection failed:", error.message);
-    process.exit(1);
+    console.error("❌ DB connection failed:", error);
+throw error;
   }
 };
 
