@@ -6,6 +6,7 @@ import taskRoutes from "./taskRoutes.js";
 import projectRoutes from "./projectRoutes.js";
 import projectMemberRoutes from "./projectMemberRoutes.js";
 import taskTimeLogRoutes from "./taskTimeLogRoutes.js";
+import clientRoutes from "./clientsRoutes.js";
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use("/tasks", taskRoutes);
 router.use("/projects",  projectRoutes);
 router.use("/project-members",  projectMemberRoutes);
 router.use("/task-time", taskTimeLogRoutes);
+router.use("/clients", clientRoutes);
 
 export default router;
