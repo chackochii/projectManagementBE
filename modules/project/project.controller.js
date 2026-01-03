@@ -8,8 +8,7 @@ import {
 
 export const createProject = async (req, res) => {
   try {
-    const { name, description, clientName, clientEmail, clientPhone, status } =
-      req.body;
+    const { name, description, clientId, status } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: "Project name is required" });
@@ -18,10 +17,8 @@ export const createProject = async (req, res) => {
     const project = await createProjectService({
       name,
       description,
-      clientName,
-      clientEmail,
-      clientPhone,
-      status: status || "active",
+      clientId,
+      status,
     });
 
     res.status(201).json({
@@ -29,10 +26,11 @@ export const createProject = async (req, res) => {
       data: project,
     });
   } catch (err) {
-    console.error("Create Project Error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Create Project Error:", err.message);
+    res.status(500).json({ message: err.message || "Server error" });
   }
 };
+
 
 export const listProjects = async (req, res) => {
   try {
