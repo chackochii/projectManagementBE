@@ -28,12 +28,14 @@ export const sequelize = new Sequelize(
       idle: parseInt(process.env.DB_IDLE || "10000", 10),
     },
 
-   dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false,
-      },
-    },
+dialectOptions: {
+  statement_timeout: 30000, // 30s
+  ssl: {
+    require: true,
+    rejectUnauthorized: false,
+  },
+},
+
   }
 );
 
