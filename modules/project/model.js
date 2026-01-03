@@ -25,6 +25,10 @@ export default (sequelize) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+       clientId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
 
       clientEmail: {
         type: DataTypes.STRING,
