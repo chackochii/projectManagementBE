@@ -42,7 +42,7 @@ export default (sequelize) => {
         type: DataTypes.STRING,
         allowNull: true,
         validate: {
-          len: [10, 15],
+          len: [6, 15],
         },
       },
 
