@@ -150,38 +150,69 @@ export const getMonthlyReportService = async (range, userId, projectId) => {
   const now = new Date();
   let startDate, endDate;
 
-  // ---- DATE RANGE ----
+  // ---------- DATE RANGE (UTC SAFE) ----------
   if (range === "today") {
- const base = new Date();
+    startDate = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0, 0, 0, 0
+    ));
 
-startDate = new Date(base);
-startDate.setHours(0,0,0,0);
-
-endDate = new Date(base);
-endDate.setHours(23,59,59,999);
-
-  } else if (range === "week") {
-    const day = now.getDay(); // 0=Sunday
-    startDate = new Date(now);
-    startDate.setDate(now.getDate() - day);
-    startDate.setHours(0, 0, 0, 0);
-    endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
-    endDate.setHours(23, 59, 59, 999);
-  } else {
-    // month
-    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    endDate = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      23, 59, 59, 999
+    ));
   }
 
-  // ---- QUERY TASKS ----
+  else if (range === "week") {
+    const day = now.getUTCDay(); // 0 = Sunday
+
+    startDate = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() - day,
+      0, 0, 0, 0
+    ));
+
+    endDate = new Date(Date.UTC(
+      startDate.getUTCFullYear(),
+      startDate.getUTCMonth(),
+      startDate.getUTCDate() + 6,
+      23, 59, 59, 999
+    ));
+  }
+
+  else {
+    // month
+    startDate = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      1,
+      0, 0, 0, 0
+    ));
+
+    endDate = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth() + 1,
+      0,
+      23, 59, 59, 999
+    ));
+  }
+
+  // ---------- WHERE CLAUSE ----------
   const whereClause = {
-    updatedAt: { [Op.between]: [startDate, endDate] },
+    updatedAt: {
+      [Op.between]: [startDate, endDate],
+    },
   };
 
   if (userId) whereClause.assigneeId = userId;
   if (projectId) whereClause.projectId = projectId;
 
+  // ---------- QUERY ----------
   const tasks = await db.Task.findAll({
     where: whereClause,
     include: [
@@ -198,18 +229,25 @@ endDate.setHours(23,59,59,999);
     ],
   });
 
-  if (tasks.length === 0) {
+  if (!tasks.length) {
     return {
       employees: [],
-      summary: { todo: 0, inProgress: 0, review: 0, done: 0, total: 0, totalHours: 0 },
+      summary: {
+        todo: 0,
+        inProgress: 0,
+        review: 0,
+        done: 0,
+        total: 0,
+        totalHours: 0,
+      },
     };
   }
 
-  // ---- EMPLOYEE REPORT ----
+  // ---------- EMPLOYEE AGGREGATION ----------
   const employeeMap = {};
   let totalHours = 0;
 
-  tasks.forEach((task) => {
+  for (const task of tasks) {
     const empName = task.assignee?.name || "Unassigned";
 
     if (!employeeMap[empName]) {
@@ -224,40 +262,43 @@ endDate.setHours(23,59,59,999);
       };
     }
 
-    employeeMap[empName].totalTasks += 1;
+    const emp = employeeMap[empName];
+    emp.totalTasks++;
 
-    // Status count
-    if (task.status === "todo") employeeMap[empName].todo++;
-    if (task.status === "in-progress" || task.status === "review") employeeMap[empName].inProgress++;
-    if (task.status === "review") employeeMap[empName].review++;
-    if (task.status === "done") employeeMap[empName].done++;
+    if (task.status === "todo") emp.todo++;
+    if (task.status === "in-progress" || task.status === "review") emp.inProgress++;
+    if (task.status === "review") emp.review++;
+    if (task.status === "done") emp.done++;
 
-    // Hours worked
- if (task.hoursTaken && task.hoursTaken > 0) {
-  const hours = task.hoursTaken / 3600; // convert minutes → hours
-  employeeMap[empName].hoursWorked += hours;
-  totalHours += hours;
-}
+    // hoursTaken assumed in SECONDS
+    if (task.hoursTaken && task.hoursTaken > 0) {
+      const hours = task.hoursTaken / 3600;
+      emp.hoursWorked += hours;
+      totalHours += hours;
+    }
+  }
 
-  });
-
-  // ---- SUMMARY ----
+  // ---------- SUMMARY ----------
   const summary = {
-    todo: tasks.filter((t) => t.status === "todo").length,
-    inProgress: tasks.filter((t) => t.status === "in-progress" || t.status === "review").length,
-    review: tasks.filter((t) => t.status === "review").length,
-    done: tasks.filter((t) => t.status === "done").length,
+    todo: tasks.filter(t => t.status === "todo").length,
+    inProgress: tasks.filter(t => ["in-progress", "review"].includes(t.status)).length,
+    review: tasks.filter(t => t.status === "review").length,
+    done: tasks.filter(t => t.status === "done").length,
     total: tasks.length,
-    totalHours: tasks.totalHours,
+    totalHours: Number(totalHours.toFixed(2)),
   };
 
-  const employeeArray = Object.values(employeeMap).map((e) => ({
+  const employees = Object.values(employeeMap).map(e => ({
     ...e,
     hoursWorked: Number(e.hoursWorked.toFixed(2)),
   }));
 
-  return { employees: employeeArray, summary };
+  return { employees, summary };
 };
+
+
+
+
 
 // const Task = db.Task;
 
