@@ -20,7 +20,6 @@ export const sequelize = new Sequelize(
     port: process.env.DB_PORT,
     dialect: process.env.DB_DIALECT || "postgres",
     logging: false,
-    synchronize: true,
 
     pool: {
       max: 10,
