@@ -7,23 +7,57 @@ import indexRoutes from "./routes/index.js";
 dotenv.config();
 
 const app = express();
-app.use(express.json());
 
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Authorization', 'Content-Type'],
-}));
+/* --------------------------------------------------
+   Middleware
+-------------------------------------------------- */
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Central Routes
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Authorization", "Content-Type"],
+  })
+);
+
+/* --------------------------------------------------
+   Routes
+-------------------------------------------------- */
 app.use("/api", indexRoutes);
 
-const PORT = process.env.PORT || 8000;
+/* --------------------------------------------------
+   Health Check (IMPORTANT for Nginx / Load Balancers)
+-------------------------------------------------- */
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
 
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`✅  Server running on port ${PORT}`);
+/* --------------------------------------------------
+   Error Handler (prevents hanging responses)
+-------------------------------------------------- */
+app.use((err, req, res, _next) => {
+  console.error("UNHANDLED ERROR:", err);
+  res.status(err.status || 500).json({
+    message: err.message || "Internal Server Error",
   });
 });
+
+/* --------------------------------------------------
+   Server Start (DB FIRST)
+-------------------------------------------------- */
+const PORT = process.env.PORT || 8000;
+
+(async () => {
+  try {
+    await connectDB();
+    app.listen(PORT, () => {
+      console.log(`✅ Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ Failed to start server:", err);
+    process.exit(1);
+  }
+})();
