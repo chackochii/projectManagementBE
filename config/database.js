@@ -10,87 +10,90 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize Sequelize
+// Sequelize instance
 export const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
+    port: Number(process.env.DB_PORT || 5432),
     dialect: process.env.DB_DIALECT || "postgres",
+
     logging: false,
 
     pool: {
-      max: 10,
+      max: 5,
       min: 0,
-      acquire: parseInt(process.env.DB_ACQUIRE || "30000", 10),
-      idle: parseInt(process.env.DB_IDLE || "10000", 10),
+      acquire: Number(process.env.DB_ACQUIRE || 30000),
+      idle: Number(process.env.DB_IDLE || 10000),
     },
 
-dialectOptions: {
-  statement_timeout: 30000, // 30s
-  ssl: {
-    require: true,
-    rejectUnauthorized: false,
-  },
-},
-
+    dialectOptions: {
+      statement_timeout: 30000, // prevents hanging queries
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
   }
 );
 
-// DB container
+// DB container (models will be attached here)
 const db = {};
-
-
 
 // Auto-load all models
 const loadModels = async () => {
   const modulesDir = path.join(__dirname, "../modules");
+
+  if (!fs.existsSync(modulesDir)) {
+    throw new Error(`Modules directory not found: ${modulesDir}`);
+  }
+
   const folders = fs.readdirSync(modulesDir);
 
   for (const folder of folders) {
     const modelPath = path.join(modulesDir, folder, "model.js");
 
-    if (fs.existsSync(modelPath)) {
-      console.log("Loading model:", modelPath);
-      const module = await import(modelPath);
-      const model = module.default(sequelize);
+    if (!fs.existsSync(modelPath)) continue;
 
-      console.log(" → Loaded:", model?.name);
+    const module = await import(modelPath);
+    const model = module.default(sequelize);
 
-      db[model.name] = model;
-    } else {
-      console.log("No model.js found in:", folder);
+    if (!model || !model.name) {
+      throw new Error(`Invalid model export in ${modelPath}`);
     }
+
+    db[model.name] = model;
   }
 
-  console.log("Final models in db:", Object.keys(db));
-
-  // Associations
-  Object.keys(db).forEach((modelName) => {
-    if (db[modelName].associate) db[modelName].associate(db);
+  // Setup associations
+  Object.values(db).forEach((model) => {
+    if (typeof model.associate === "function") {
+      model.associate(db);
+    }
   });
+
+  Object.freeze(db); // prevent mutation after init
 };
 
-
+// Connect DB (must complete BEFORE server starts)
 export const connectDB = async () => {
   try {
-    await loadModels();   // ⬅️ Make sure models are loaded FIRST
-
+    await loadModels();
     await sequelize.authenticate();
+
     console.log("✅ PostgreSQL connected successfully");
 
     if (process.env.NODE_ENV !== "production") {
       await sequelize.sync({ alter: true });
-      console.log("✅  Database synchronized (DEV MODE)");
+      console.log("✅ Database synchronized (DEV MODE)");
     }
   } catch (error) {
     console.error("❌ DB connection failed:", error);
-throw error;
+    process.exit(1);
   }
 };
 
-export default sequelize;
-
 export { db };
+export default sequelize;
