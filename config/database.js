@@ -6,11 +6,15 @@ import { fileURLToPath } from "url";
 
 dotenv.config();
 
-// Fix __dirname for ES Modules
+/* --------------------------------------------------
+   Fix __dirname for ES Modules
+-------------------------------------------------- */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Sequelize instance
+/* --------------------------------------------------
+   Sequelize Instance
+-------------------------------------------------- */
 export const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
@@ -19,7 +23,6 @@ export const sequelize = new Sequelize(
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT || 5432),
     dialect: process.env.DB_DIALECT || "postgres",
-
     logging: false,
 
     pool: {
@@ -30,7 +33,7 @@ export const sequelize = new Sequelize(
     },
 
     dialectOptions: {
-      statement_timeout: 30000, // prevents hanging queries
+      statement_timeout: 30000, // prevent long-running queries
       ssl: {
         require: true,
         rejectUnauthorized: false,
@@ -39,10 +42,14 @@ export const sequelize = new Sequelize(
   }
 );
 
-// DB container (models will be attached here)
+/* --------------------------------------------------
+   Model Container
+-------------------------------------------------- */
 const db = {};
 
-// Auto-load all models
+/* --------------------------------------------------
+   Load Models Dynamically
+-------------------------------------------------- */
 const loadModels = async () => {
   const modulesDir = path.join(__dirname, "../modules");
 
@@ -74,10 +81,12 @@ const loadModels = async () => {
     }
   });
 
-  Object.freeze(db); // prevent mutation after init
+  Object.freeze(db);
 };
 
-// Connect DB (must complete BEFORE server starts)
+/* --------------------------------------------------
+   Connect Database
+-------------------------------------------------- */
 export const connectDB = async () => {
   try {
     await loadModels();
@@ -90,10 +99,13 @@ export const connectDB = async () => {
       console.log("✅ Database synchronized (DEV MODE)");
     }
   } catch (error) {
-    console.error("❌ DB connection failed:", error);
+    console.error("❌ Database connection failed:", error);
     process.exit(1);
   }
 };
 
+/* --------------------------------------------------
+   Exports
+-------------------------------------------------- */
 export { db };
 export default sequelize;
