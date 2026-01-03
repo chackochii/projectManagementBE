@@ -31,9 +31,10 @@ app.use("/api", indexRoutes);
 /* --------------------------------------------------
    Health Check (IMPORTANT for Nginx / Load Balancers)
 -------------------------------------------------- */
-app.get("/health", (_req, res) => {
+app.get("/api/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
+
 
 /* --------------------------------------------------
    Error Handler (prevents hanging responses)
