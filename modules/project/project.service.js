@@ -3,17 +3,36 @@ import { db } from "../../config/database.js";
 
 
 export const createProjectService = async (data) => {
-    const Project = db.Project;
+  const Project = db.Project;
+  const Client = db.Client;
+
+  let clientName = null;
+  let clientEmail = null;
+  let clientPhone = null;
+
+  if (data.clientId) {
+    const client = await Client.findByPk(data.clientId);
+
+    if (!client) {
+      throw new Error("Client not found");
+    }
+
+    clientName = client.name;
+    clientEmail = client.email;
+    clientPhone = client.phone;
+  }
 
   return await Project.create({
     name: data.name,
     description: data.description || null,
-    clientName: data.clientName,
-    clientEmail: data.clientEmail,
-    clientPhone: data.clientPhone,
+    clientId: data.clientId || null,
+    clientName,
+    clientEmail,
+    clientPhone,
     status: data.status || "active",
   });
 };
+
 
 export const listProjectsService = async () => {
     const Project = db.Project;
