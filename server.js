@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { connectDB } from "./config/database.js";
 import indexRoutes from "./routes/index.js";
+import { globalLimiter } from "./middleware/rateLimiter.js";
 
 dotenv.config();
 
@@ -13,6 +14,9 @@ const app = express();
 -------------------------------------------------- */
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+app.use(globalLimiter);
+app.set("trust proxy", 1);
+
 
 app.use(
   cors({
@@ -39,7 +43,7 @@ app.get("/api/health", (_req, res) => {
 /* --------------------------------------------------
    Error Handler (prevents hanging responses)
 -------------------------------------------------- */
-app.use((err, req, res, _next) => {
+app.use((err, _req, res, _next) => {
   console.error("UNHANDLED ERROR:", err);
   res.status(err.status || 500).json({
     message: err.message || "Internal Server Error",
