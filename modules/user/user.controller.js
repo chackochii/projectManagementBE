@@ -38,14 +38,38 @@ export const getUserById = async (req, res) => {
 };
 
 export const updateUser = async (req, res) => {
-  const user = await userService.updateUser(req.params.id, req.body);
-  res.json(user);
+  try {
+    const { id } = req.params;
+    const updatedData = req.body;
+
+    const user = await userService.updateUser(id, updatedData);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({ message: "User updated", user });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 };
 
 export const deleteUser = async (req, res) => {
-  await userService.deleteUser(req.params.id);
-  res.json({ message: "User deleted" });
+  try {
+    const { id } = req.params;
+
+    // Soft delete: mark user as 'blocked'
+    const userDeleted = await userService.softDeleteUser(id);
+
+    if (!userDeleted) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({ message: "User blocked successfully" });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 };
+
 
 export const loginAdmin = async (req, res) => {
   try {
