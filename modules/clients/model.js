@@ -31,7 +31,7 @@ export default (sequelize) => {
         defaultValue: 0.0,
       },
       status: {
-        type: DataTypes.ENUM("active", "inactive"),
+        type: DataTypes.ENUM("active", "inactive","deleted"),
         defaultValue: "active",
       },
     },
@@ -40,6 +40,15 @@ export default (sequelize) => {
       timestamps: true,
     }
   );
+
+  Client.associate = (db) => {
+  Client.hasMany(db.Project, {
+    foreignKey: "clientId",
+    as: "projects",
+    onDelete: "CASCADE",
+  });
+};
+
 
   return Client;
 };
