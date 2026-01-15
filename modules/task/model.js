@@ -69,6 +69,9 @@ export default (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
+      
+      
+      isRunning: { type: DataTypes.BOOLEAN, defaultValue: false },
 
       // 🔥 NEW FIELD FOR PROJECT
       projectId: {
@@ -76,6 +79,7 @@ export default (sequelize) => {
         allowNull: true,
       },
     },
+    
     {
       tableName: "tasks",
       timestamps: true,
