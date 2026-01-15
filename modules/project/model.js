@@ -67,6 +67,19 @@ export default (sequelize) => {
       onDelete: "CASCADE",
     });
   };
+  Project.associate = (db) => {
+  Project.hasMany(db.Task, {
+    foreignKey: "projectId",
+    as: "tasks",
+    onDelete: "CASCADE",
+  });
+
+  Project.belongsTo(db.Client, {
+    foreignKey: "clientId",
+    as: "client",
+  });
+};
+
 
   return Project;
 };
