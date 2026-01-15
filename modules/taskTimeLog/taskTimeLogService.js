@@ -25,8 +25,50 @@ export const getUserWorkHoursService = async (userId) => {
 };
 
 
+export const getProjectUserTaskHoursService = async (
+  projectId,
+  userId,
+  range = "month"
+) => {
+  const now = new Date();
+  let startDate, endDate;
 
-export const getProjectUserTaskHoursService = async (projectId, userId) => {
+  /* ---------- DATE RANGE ---------- */
+  switch (range) {
+    case "today":
+      startDate = new Date(now);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case "week": {
+      const day = now.getDay(); // Sunday = 0
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - day);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    }
+
+    default: // month
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+      endDate = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      );
+  }
+
+  /* ---------- FETCH TASKS ---------- */
   const tasks = await db.Task.findAll({
     where: { projectId },
     attributes: ["id", "title"],
@@ -34,32 +76,33 @@ export const getProjectUserTaskHoursService = async (projectId, userId) => {
 
   if (!tasks.length) return [];
 
-  const taskIds = tasks.map((t) => t.id);
+  const taskIds = tasks.map(t => t.id);
 
+  /* ---------- LOG FILTER ---------- */
   const logFilter = {
-    taskId: { [Op.in]: taskIds }
+    taskId: { [Op.in]: taskIds },
+    createdAt: { [Op.between]: [startDate, endDate] },
   };
 
   if (userId) {
     logFilter.userId = userId;
   }
 
+  /* ---------- FETCH LOGS ---------- */
   const logs = await db.TaskTimeLog.findAll({
     where: logFilter,
-    attributes: ["taskId", "durationSeconds", "userId"]
+    attributes: ["taskId", "durationSeconds", "userId"],
   });
 
-  // Debug
-  console.log("LOGS:", logs.map(l => l.toJSON()));
-
+  /* ---------- AGGREGATION ---------- */
   const timeMap = {};
 
-  logs.forEach((log) => {
+  logs.forEach(log => {
     if (!timeMap[log.taskId]) timeMap[log.taskId] = 0;
     timeMap[log.taskId] += log.durationSeconds || 0;
   });
 
-  let result = tasks.map((task) => {
+  let result = tasks.map(task => {
     const seconds = timeMap[task.id] || 0;
     return {
       taskId: task.id,
@@ -68,11 +111,8 @@ export const getProjectUserTaskHoursService = async (projectId, userId) => {
     };
   });
 
-  // Only show tasks worked by user
-  if (userId) {
-    result = result.filter((t) => t.hoursTaken > 0);
-  }
+  // Show only tasks worked in selected range
+  result = result.filter(t => t.hoursTaken > 0);
 
   return result;
 };
-
