@@ -1,5 +1,5 @@
 import express from "express";
-import {loginUser, createUser , getUsers, loginAdmin, updateUserStatus} from "../modules/user/user.controller.js";
+import {loginUser, createUser , getUsers, loginAdmin, updateUserStatus,updateUser, deleteUser} from "../modules/user/user.controller.js";
 import {requireAdmin} from "../middleware/roleMiddleware.js";
 import {authMiddleware} from "../middleware/authMiddleware.js";
 
@@ -8,9 +8,13 @@ export const userRoutes = () => {
 
   router.post("/login",loginUser);
   // router.post("/register",authMiddleware, requireAdmin(), createUser);
-  router.post("/register",authMiddleware,requireAdmin(), createUser);
+  router.post("/register", createUser);
   router.get("/", authMiddleware, getUsers);
   router.post("/admin/login", loginAdmin);
+   
+  router.put("/:id", authMiddleware, requireAdmin(), updateUser);
+  router.delete("/:id", authMiddleware, requireAdmin(), deleteUser);
+
 
   router.post("/status", authMiddleware, requireAdmin(), updateUserStatus);
 
