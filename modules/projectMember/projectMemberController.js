@@ -4,6 +4,7 @@ import {
   addUserToProjectService,
   getProjectMembersService,
   getProjectsForUserService,
+  removeUserFromProjectService,
 } from "./projectMemberService.js";
 
 export const addUserToProject = async (req, res) => {
@@ -67,6 +68,27 @@ export const getProjectsForUser = async (req, res) => {
     });
   } catch (err) {
     console.error("Get projects for user error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+
+export const removeUserFromProject = async (req, res) => {
+  try {
+    const { projectId, userId } = req.params;
+
+    if (!projectId || !userId) {
+      return res.status(400).json({ error: "projectId and userId are required" });
+    }
+
+    await removeUserFromProjectService({ projectId, userId });
+
+    return res.json({
+      success: true,
+      message: "User removed from project successfully",
+    });
+  } catch (err) {
+    console.error("Remove user from project error:", err);
     return res.status(500).json({ error: err.message });
   }
 };
