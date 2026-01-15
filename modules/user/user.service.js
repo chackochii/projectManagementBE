@@ -60,9 +60,15 @@ export const loginUser = async (email, password) => {
 };
 
 export const getUsers = async () => {
-      const User = getUserModel(); 
-  return await User.findAll();
+  const User = getUserModel();
+
+  return await User.findAll({
+    where: {
+      status: 'active'
+    }
+  });
 };
+
 
 export const getUserById = async (id) => {
   const User = getUserModel();
@@ -110,4 +116,16 @@ export const updateUserStatus = async (id, status) => {
   user.status = status;
   await user.save();
   return user;
+};
+
+
+export const softDeleteUser = async (id) => {
+  const User = getUserModel();
+  const user = await User.findByPk(id);
+  if (!user) return null;
+
+  // Mark user as blocked instead of deleting
+  user.status = "blocked";
+  await user.save();
+  return true;
 };
