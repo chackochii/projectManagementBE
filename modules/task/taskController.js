@@ -11,6 +11,7 @@ import {
   getUserTasksGroupedService,
   unassignTaskService,
   assignTaskService,
+  getUserTasksReportService,
 } from "./taskService.js";
 import { getUserById } from "../user/user.service.js";
 import { Op } from "sequelize";
@@ -244,3 +245,40 @@ export const unassignTask = async (req, res) => {
   }
 };
 
+
+export const getUserTasksReport = async (req, res) => {
+  try {
+    const {
+      userId,
+      range,
+      startDate,
+      endDate,
+      projectId,
+      status
+    } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+
+    const report = await getUserTasksReportService({
+      userId,
+      range,
+      startDate,
+      endDate,
+      projectId,
+      status,
+    });
+
+    if (!report.tasks.length) {
+      return res.json({
+        message: "No tasks found for the selected period",
+        ...report,
+      });
+    }
+
+    return res.json(report);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
