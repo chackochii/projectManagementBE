@@ -67,3 +67,29 @@ export const getProjectsForUserService = async (userId) => {
 
   return memberships.map((m) => m.project);
 };
+
+
+/* ============================
+   REMOVE USER FROM PROJECT
+============================ */
+export const removeUserFromProjectService = async ({ projectId, userId }) => {
+  // Check project
+  const project = await db.Project.findByPk(projectId);
+  if (!project) {
+    throw new Error("Project not found");
+  }
+
+  // Check membership
+  const membership = await db.ProjectMember.findOne({
+    where: { projectId, userId },
+  });
+
+  if (!membership) {
+    throw new Error("User is not a member of this project");
+  }
+
+  // Remove mapping
+  await membership.destroy();
+
+  return true;
+};
