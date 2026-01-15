@@ -20,20 +20,24 @@ export const getUserWorkHours = async (req, res) => {
 export const getProjectUserTaskHours = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { userId } = req.query;
+    const { userId, range = "month" } = req.query;
 
-    console.log(projectId,userId,"------->")
-
-    const report = await getProjectUserTaskHoursService(projectId, userId);
+    const report = await getProjectUserTaskHoursService(
+      projectId,
+      userId,
+      range
+    );
 
     return res.json({
       success: true,
       projectId,
       userId: userId || null,
+      range,
       tasks: report,
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 };
+
 
