@@ -1,6 +1,6 @@
 // services/taskService.js
 import { db } from "../../config/database.js";
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 
 export const createTaskService = async (data, user, assigneeName) => {
   const { title, description, priority, assigneeId, projectId } = data;
@@ -43,11 +43,20 @@ export const updateTaskStatusService = async (taskId, status) => {
 
 
 export const getTasksByStatusService = async (status, projectId) => {
+  const twoWeeksAgo = new Date();
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
   return await db.Task.findAll({
-    where: { status, projectId },
+    where: {
+      status,
+      projectId,
+      createdAt: {
+        [Op.gte]: twoWeeksAgo,
+      },
+    },
     order: [["createdAt", "DESC"]],
   });
-}
+};
 
 
 export const getActiveTasksForUserService = async (userId, projectId) => {
@@ -71,7 +80,17 @@ export const startTaskService = async (taskId, userId) => {
 
   const now = new Date();
 
-  // Close any previously open logs
+  // 1️⃣ Check if any other task is running for this user
+  const runningTask = await db.Task.findOne({
+    where: {
+      assigneeId: userId,
+      isRunning: true,
+      status: "in-progress",
+      id: { [Sequelize.Op.ne]: taskId }, // exclude current task
+    },
+  });
+
+  // 2️⃣ Close any previously open logs for this task
   await db.TaskTimeLog.update(
     { endTime: now },
     {
@@ -83,7 +102,7 @@ export const startTaskService = async (taskId, userId) => {
     }
   );
 
-  // Create new time log entry for this start
+  // 3️⃣ Create new time log entry for this task
   await db.TaskTimeLog.create({
     taskId,
     userId,
@@ -92,13 +111,19 @@ export const startTaskService = async (taskId, userId) => {
     durationSeconds: 0,
   });
 
-  // Update task
+  // 4️⃣ Determine if current task should be running
+  const isRunning = !runningTask; // true if no other task is running
+
+  // 5️⃣ Update the current task
   return await task.update({
     status: "in-progress",
     startTime: now,
     endTime: null,
+    isRunning,
   });
 };
+
+
 
 
 export const stopTaskService = async (taskId, userId) => {
@@ -137,12 +162,11 @@ export const stopTaskService = async (taskId, userId) => {
 
   // Update task
   return await task.update({
-    status: "todo",
+    isRunning: false, 
     endTime: now,
     hoursTaken: totalSeconds, // 🔥 Update new column
   });
 };
-
 
 
 
@@ -158,7 +182,6 @@ export const getMonthlyReportService = async (range, userId, projectId) => {
       now.getUTCDate(),
       0, 0, 0, 0
     ));
-
     endDate = new Date(Date.UTC(
       now.getUTCFullYear(),
       now.getUTCMonth(),
@@ -169,14 +192,12 @@ export const getMonthlyReportService = async (range, userId, projectId) => {
 
   else if (range === "week") {
     const day = now.getUTCDay(); // 0 = Sunday
-
     startDate = new Date(Date.UTC(
       now.getUTCFullYear(),
       now.getUTCMonth(),
       now.getUTCDate() - day,
       0, 0, 0, 0
     ));
-
     endDate = new Date(Date.UTC(
       startDate.getUTCFullYear(),
       startDate.getUTCMonth(),
@@ -186,14 +207,13 @@ export const getMonthlyReportService = async (range, userId, projectId) => {
   }
 
   else {
-    // month
+    // month (default)
     startDate = new Date(Date.UTC(
       now.getUTCFullYear(),
       now.getUTCMonth(),
       1,
       0, 0, 0, 0
     ));
-
     endDate = new Date(Date.UTC(
       now.getUTCFullYear(),
       now.getUTCMonth() + 1,
@@ -202,9 +222,9 @@ export const getMonthlyReportService = async (range, userId, projectId) => {
     ));
   }
 
-  // ---------- WHERE CLAUSE ----------
+  // ---------- WHERE CLAUSE (FIXED) ----------
   const whereClause = {
-    updatedAt: {
+    createdAt: {
       [Op.between]: [startDate, endDate],
     },
   };
@@ -266,8 +286,11 @@ export const getMonthlyReportService = async (range, userId, projectId) => {
     emp.totalTasks++;
 
     if (task.status === "todo") emp.todo++;
-    if (task.status === "in-progress" || task.status === "review") emp.inProgress++;
-    if (task.status === "review") emp.review++;
+    if (task.status === "in-progress") emp.inProgress++;
+    if (task.status === "review") {
+      emp.inProgress++;
+      emp.review++;
+    }
     if (task.status === "done") emp.done++;
 
     // hoursTaken assumed in SECONDS
@@ -281,20 +304,23 @@ export const getMonthlyReportService = async (range, userId, projectId) => {
   // ---------- SUMMARY ----------
   const summary = {
     todo: tasks.filter(t => t.status === "todo").length,
-    inProgress: tasks.filter(t => ["in-progress", "review"].includes(t.status)).length,
+    inProgress: tasks.filter(t =>
+      ["in-progress", "review"].includes(t.status)
+    ).length,
     review: tasks.filter(t => t.status === "review").length,
     done: tasks.filter(t => t.status === "done").length,
     total: tasks.length,
     totalHours: Number(totalHours.toFixed(2)),
   };
 
-  const employees = Object.values(employeeMap).map(e => ({
-    ...e,
-    hoursWorked: Number(e.hoursWorked.toFixed(2)),
+  const employees = Object.values(employeeMap).map(emp => ({
+    ...emp,
+    hoursWorked: Number(emp.hoursWorked.toFixed(2)),
   }));
 
   return { employees, summary };
 };
+
 
 
 
@@ -396,3 +422,100 @@ export const unassignTaskService = async ({ taskId, user }) => {
   return task;
 };
 
+
+export const getUserTasksReportService = async ({
+  userId,
+  range = "month",
+  projectId,
+  status, // optional
+}) => {
+  const now = new Date();
+  let startDate, endDate;
+
+  /* ---------- DATE RANGE (LOCAL SAFE) ---------- */
+  switch (range) {
+    case "today":
+      startDate = new Date(now);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case "week": {
+      const day = now.getDay(); // Sunday = 0
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - day);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    }
+
+    default: // month
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  }
+
+  /* ---------- WHERE CLAUSE (FIXED) ---------- */
+  const whereClause = {
+    assigneeId: userId,
+    endTime: {
+      [Op.not]: null,
+      [Op.between]: [startDate, endDate],
+    },
+  };
+
+  // Optional status filter (only if explicitly passed)
+  if (status) {
+    whereClause.status = status;
+  }
+
+  if (projectId) {
+    whereClause.projectId = projectId;
+  }
+
+  /* ---------- QUERY ---------- */
+  const tasks = await db.Task.findAll({
+    where: whereClause,
+    include: [
+      {
+        model: db.Project,
+        as: "project",
+        attributes: ["id", "name"],
+      },
+    ],
+    order: [["endTime", "DESC"]],
+  });
+
+  /* ---------- AGGREGATION ---------- */
+  let totalHours = 0;
+
+  const taskList = tasks.map(task => {
+    const hours =
+      task.hoursTaken && task.hoursTaken > 0
+        ? task.hoursTaken / 3600 // ✅ seconds → hours
+        : 0;
+
+    totalHours += hours;
+
+    return {
+      id: task.id,
+      title: task.title,
+      status: task.status,
+      project: task.project?.name || null,
+      hoursWorked: Number(hours.toFixed(2)),
+      completedAt: task.endTime,
+    };
+  });
+
+  return {
+    userId,
+    range,
+    totalTasks: tasks.length,
+    totalHours: Number(totalHours.toFixed(2)),
+    tasks: taskList,
+  };
+};
