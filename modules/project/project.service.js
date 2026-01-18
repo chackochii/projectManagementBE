@@ -35,17 +35,18 @@ export const createProjectService = async (data) => {
 
 
 export const listProjectsService = async () => {
-    const Project = db.Project;
-  return await Project.findAll({
+  return await db.Project.findAll({
     include: [
       {
         model: db.Task,
         as: "tasks",
+        required: false,
       },
     ],
     order: [["createdAt", "DESC"]],
   });
 };
+
 
 export const getProjectByIdService = async (id) => {
     const Project = db.Project;
@@ -64,12 +65,14 @@ export const updateProjectService = async (id, updateData) => {
   return project;
 };
 
+
 export const deleteProjectService = async (id) => {
-    const Project = db.Project;
+  const Project = db.Project;
+
   const project = await Project.findByPk(id);
   if (!project) return null;
 
-  await project.destroy();
+  await project.destroy(); // 🔥 SOFT DELETE
   return true;
 };
 
