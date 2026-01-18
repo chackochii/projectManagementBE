@@ -1,6 +1,5 @@
 import { DataTypes } from "sequelize";
 
-
 export default (sequelize) => {
   const Project = sequelize.define(
     "Project",
@@ -25,7 +24,8 @@ export default (sequelize) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
-       clientId: {
+
+      clientId: {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
@@ -46,7 +46,6 @@ export default (sequelize) => {
         },
       },
 
-      // project status
       status: {
         type: DataTypes.ENUM("active", "on-hold", "completed", "cancelled"),
         defaultValue: "active",
@@ -55,31 +54,22 @@ export default (sequelize) => {
     {
       tableName: "projects",
       timestamps: true,
+      paranoid: true,          // ✅ SOFT DELETE
+      deletedAt: "deletedAt",  // explicit (optional but clear)
     }
   );
 
-  // 🔥 ASSOCIATIONS (same pattern as your Task model)
   Project.associate = (db) => {
-    // 1 project → many tasks
     Project.hasMany(db.Task, {
       foreignKey: "projectId",
       as: "tasks",
-      onDelete: "CASCADE",
+    });
+
+    Project.belongsTo(db.Client, {
+      foreignKey: "clientId",
+      as: "client",
     });
   };
-  Project.associate = (db) => {
-  Project.hasMany(db.Task, {
-    foreignKey: "projectId",
-    as: "tasks",
-    onDelete: "CASCADE",
-  });
-
-  Project.belongsTo(db.Client, {
-    foreignKey: "clientId",
-    as: "client",
-  });
-};
-
 
   return Project;
 };
