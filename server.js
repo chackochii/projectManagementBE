@@ -54,6 +54,7 @@ app.use((err, _req, res, _next) => {
    Server Start (DB FIRST)
 -------------------------------------------------- */
 const PORT = process.env.PORT || 8000;
+const HOST = process.env.HOST || "127.0.0.1";
 
 (async () => {
   try {
