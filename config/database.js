@@ -94,10 +94,6 @@ export const connectDB = async () => {
 
     console.log("✅ PostgreSQL connected successfully");
 
-    if (process.env.NODE_ENV !== "production") {
-      await sequelize.sync({ alter: true });
-      console.log("✅ Database synchronized (DEV MODE)");
-    }
   } catch (error) {
     console.error("❌ Database connection failed:", error);
     process.exit(1);
