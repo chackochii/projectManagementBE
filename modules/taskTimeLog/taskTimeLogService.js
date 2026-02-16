@@ -33,7 +33,7 @@ export const getUserWorkHoursService = async (userId) => {
     0
   );
 
-  return totalSeconds / 3600;
+  return totalSeconds;
 };
 
 
