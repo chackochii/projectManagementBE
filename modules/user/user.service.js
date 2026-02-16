@@ -76,10 +76,22 @@ export const getUserById = async (id) => {
 };
 
 export const updateUser = async (id, data) => {
-      const User = getUserModel();
-  await User.update(data, { where: { id } });
+  const User = getUserModel();
+
+  const updateData = { ...data };
+
+  if (!updateData.password) {
+    delete updateData.password;
+  } else {
+    const saltRounds = 10;
+    updateData.password = await bcrypt.hash(updateData.password, saltRounds);
+  }
+
+  await User.update(updateData, { where: { id } });
+
   return await User.findByPk(id);
 };
+
 
 export const deleteUser = async (id) => {
       const User = getUserModel();
