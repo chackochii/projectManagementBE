@@ -42,7 +42,7 @@ export const createUser = async (data) => {
 
 export const loginUser = async (email, password) => {
       const User = getUserModel(); 
-  const user = await User.findOne({ where: { email } });
+  const user = await User.findOne({ where: { email, status: "active" }, });
   if(user){
     console.log("User found:", user.email);
   }
