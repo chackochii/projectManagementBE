@@ -24,6 +24,7 @@ export const sequelize = new Sequelize(
     port: Number(process.env.DB_PORT || 5432),
     dialect: process.env.DB_DIALECT || "postgres",
     logging: false,
+    timezone: "+05:30",
 
     pool: {
       max: 5,
@@ -94,6 +95,8 @@ export const connectDB = async () => {
 
     console.log("✅ PostgreSQL connected successfully");
 
+    await sequelize.sync({ alter: true }); 
+    console.log("✅ Database tables created/updated");
   } catch (error) {
     console.error("❌ Database connection failed:", error);
     process.exit(1);
