@@ -2,17 +2,29 @@ import { Op } from "sequelize";
 import {db} from "../../config/database.js";
 
 export const getUserWorkHoursService = async (userId) => {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
 
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+  const now = new Date();
 
-  // Fetch logs only for today
+  const startOfDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0,0,0,0
+  );
+
+  const endOfDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,59,59,999
+  );
+
   const logs = await db.TaskTimeLog.findAll({
     where: {
-      userId,
-      startTime: { [Op.between]: [startOfDay, endOfDay] },
+      userId: Number(userId),
+      startTime: {
+        [Op.between]: [startOfDay, endOfDay],
+      },
     },
   });
 
@@ -21,7 +33,7 @@ export const getUserWorkHoursService = async (userId) => {
     0
   );
 
-  return totalSeconds
+  return totalSeconds / 3600;
 };
 
 
@@ -30,89 +42,153 @@ export const getProjectUserTaskHoursService = async (
   userId,
   range = "month"
 ) => {
+
+  console.log("\n=== SERVICE START ===");
+
   const now = new Date();
-  let startDate, endDate;
+  console.log("Current server time:", now);
 
-  /* ---------- DATE RANGE ---------- */
-  switch (range) {
-    case "today":
-      startDate = new Date(now);
-      startDate.setHours(0, 0, 0, 0);
+  let startDate;
+  let endDate;
 
-      endDate = new Date(now);
-      endDate.setHours(23, 59, 59, 999);
-      break;
+  if (range === "today") {
 
-    case "week": {
-      const day = now.getDay(); // Sunday = 0
-      startDate = new Date(now);
-      startDate.setDate(now.getDate() - day);
-      startDate.setHours(0, 0, 0, 0);
+    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0,0);
+    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59,999);
 
-      endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 6);
-      endDate.setHours(23, 59, 59, 999);
-      break;
-    }
-
-    default: // month
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
-      endDate = new Date(
-        now.getFullYear(),
-        now.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
-        999
-      );
   }
 
-  /* ---------- FETCH TASKS ---------- */
+  else if (range === "week") {
+
+    const firstDay = now.getDate() - now.getDay();
+
+    startDate = new Date(now);
+    startDate.setDate(firstDay);
+    startDate.setHours(0,0,0,0);
+
+    endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    endDate.setHours(23,59,59,999);
+
+  }
+
+  else {
+
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0,0);
+
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23,59,59,999);
+
+  }
+
+  console.log("Computed startDate:", startDate);
+  console.log("Computed endDate:", endDate);
+
+
+  // STEP 1: Fetch tasks
   const tasks = await db.Task.findAll({
-    where: { projectId },
-    attributes: ["id", "title"],
+    where: {
+      projectId: Number(projectId),
+    },
+    attributes: ["id", "title", "projectId"],
   });
 
-  if (!tasks.length) return [];
+  console.log("Tasks found:", tasks.length);
+  console.log("Tasks data:", tasks.map(t => t.toJSON()));
+
+
+  if (!tasks.length) {
+    console.log("❌ No tasks found for project");
+    return [];
+  }
 
   const taskIds = tasks.map(t => t.id);
 
-  /* ---------- LOG FILTER ---------- */
+  console.log("Task IDs:", taskIds);
+
+
+  // STEP 2: Build log filter
   const logFilter = {
-    taskId: { [Op.in]: taskIds },
-    createdAt: { [Op.between]: [startDate, endDate] },
+
+    taskId: {
+      [Op.in]: taskIds,
+    },
+
+    startTime: {
+      [Op.between]: [startDate, endDate],
+    },
+
   };
 
   if (userId) {
-    logFilter.userId = userId;
+    logFilter.userId = Number(userId);
   }
 
-  /* ---------- FETCH LOGS ---------- */
+  console.log("Log filter:", logFilter);
+
+
+  // STEP 3: Fetch logs
   const logs = await db.TaskTimeLog.findAll({
+
     where: logFilter,
-    attributes: ["taskId", "durationSeconds", "userId"],
+
+    attributes: [
+      "taskId",
+      "durationSeconds",
+      "userId",
+      "startTime",
+      "endTime"
+    ],
+
   });
 
-  /* ---------- AGGREGATION ---------- */
+  console.log("Logs found:", logs.length);
+
+  if (logs.length) {
+    console.log("Sample log:", logs[0].toJSON());
+  } else {
+    console.log("❌ No logs matched filter");
+  }
+
+
+  // STEP 4: Aggregate
   const timeMap = {};
 
-  logs.forEach(log => {
-    if (!timeMap[log.taskId]) timeMap[log.taskId] = 0;
-    timeMap[log.taskId] += log.durationSeconds || 0;
-  });
+  for (const log of logs) {
 
-  let result = tasks.map(task => {
-    const seconds = timeMap[task.id] || 0;
-    return {
-      taskId: task.id,
-      taskName: task.title,
-      hoursTaken: Number((seconds / 3600).toFixed(2)),
-    };
-  });
+    if (!timeMap[log.taskId])
+      timeMap[log.taskId] = 0;
 
-  // Show only tasks worked in selected range
-  result = result.filter(t => t.hoursTaken > 0);
+    timeMap[log.taskId] += log.durationSeconds;
+
+  }
+
+  console.log("Time map:", timeMap);
+
+
+  // STEP 5: Build result
+  const result = tasks
+    .map(task => {
+
+      const seconds = timeMap[task.id] || 0;
+
+      return {
+
+        taskId: task.id,
+
+        taskName: task.title,
+
+        hoursTaken: Number((seconds)),
+
+      };
+
+    })
+
+  console.log("Final result:", result);
+
+  console.log("=== SERVICE END ===\n");
 
   return result;
+
 };
+
+
