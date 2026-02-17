@@ -519,3 +519,44 @@ export const getUserTasksReportService = async ({
     tasks: taskList,
   };
 };
+
+
+
+
+
+export const getUserTasksFullDetailsService = async ({
+  userId,
+  projectId,
+  status,
+  priority,
+  startDate,
+  endDate,
+}) => {
+  const where = { projectId };
+
+  if (userId) {
+    where[Op.or] = [{ assigneeId: userId }, { reporterId: userId }];
+  }
+
+  if (status) where.status = status;
+  if (priority) where.priority = priority;
+
+  if (startDate && endDate) {
+    where.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+  }
+
+  const tasks = await db.Task.findAll({
+    where,
+    include: [
+      { model: db.User, as: "assignee", attributes: ["id", "name", "email"] },
+      { model: db.User, as: "reporter", attributes: ["id", "name", "email"] },
+      { model: db.Project, as: "project", attributes: ["id", "name"] },
+      { model: db.TaskTimeLog, as: "timeLogs", attributes: ["id", "startTime", "endTime", "durationSeconds"] },
+    ],
+    order: [["createdAt", "DESC"]],
+  });
+
+  return tasks;
+};
+
+
