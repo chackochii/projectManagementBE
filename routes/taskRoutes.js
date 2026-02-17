@@ -1,6 +1,6 @@
 // routes/taskRoutes.js
 import express from "express";
-import { createTask, getBacklogTasks, updateTaskStatus, getTasksByStatus, getActiveTasksForUser, startTask, stopTask, getMonthlyReport,getUserTasksController, assignTask, unassignTask, getUserTasksReport} from "../modules/task/taskController.js";
+import { createTask, getBacklogTasks, updateTaskStatus, getTasksByStatus, getActiveTasksForUser, startTask, stopTask, getMonthlyReport,getUserTasksController, assignTask, unassignTask, getUserTasksReport, getUserTasksFullDetailsController} from "../modules/task/taskController.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -22,6 +22,8 @@ router.patch("/assign", authMiddleware, assignTask);
 router.patch("/unassign", authMiddleware, unassignTask);
 
 router.get("/user-tasks", authMiddleware, getUserTasksReport );
+
+router.get("/tasksDetails", authMiddleware, getUserTasksFullDetailsController )
 
 
 
