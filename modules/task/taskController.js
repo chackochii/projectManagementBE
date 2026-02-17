@@ -282,3 +282,37 @@ export const getUserTasksReport = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
+
+
+
+
+
+export const getUserTasksFullDetailsController = async (req, res) => {
+  try {
+    const { userId, projectId, status, priority, startDate, endDate } = req.query;
+
+    // projectId is still required, optional: userId
+    if (!projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    const tasks = await getUserTasksFullDetailsService({
+      userId: userId ? parseInt(userId) : null, // null means all users
+      projectId: parseInt(projectId),
+      status,
+      priority,
+      startDate,
+      endDate,
+    });
+
+    return res.json({
+      success: true,
+      count: tasks.length,
+      tasks,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+
