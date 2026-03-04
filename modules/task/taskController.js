@@ -13,6 +13,7 @@ import {
   assignTaskService,
   getUserTasksReportService,
   getUserTasksFullDetailsService,
+  getInvoiceReportService,
 } from "./taskService.js";
 import { getUserById } from "../user/user.service.js";
 import { Op } from "sequelize";
