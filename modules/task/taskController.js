@@ -317,3 +317,40 @@ export const getUserTasksFullDetailsController = async (req, res) => {
 };
 
 
+
+// invoice page
+
+export const getInvoiceReportController = async (req, res) => {
+  try {
+    const { projectId, type, startDate, endDate } = req.query;
+
+    if (!projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        error: "startDate and endDate are required",
+      });
+    }
+
+    const report = await getInvoiceReportService({
+      projectId: parseInt(projectId),
+      type,
+      startDate,
+      endDate,
+    });
+
+    return res.json({
+      success: true,
+      ...report,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      error: err.message,
+    });
+  }
+};
+
+
+
