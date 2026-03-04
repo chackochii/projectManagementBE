@@ -560,3 +560,68 @@ export const getUserTasksFullDetailsService = async ({
 };
 
 
+
+export const getInvoiceReportService = async ({
+  projectId,
+  type,
+  startDate,
+  endDate,
+}) => {
+  const where = {
+    projectId,
+    endTime: {
+      [Op.not]: null,
+      [Op.between]: [new Date(startDate), new Date(endDate)],
+    },
+  };
+
+  if (type) {
+    where.type = type;
+  }
+
+  const tasks = await db.Task.findAll({
+    where,
+    include: [
+      {
+        model: db.User,
+        as: "assignee",
+        attributes: ["id", "name", "email"],
+      },
+      {
+        model: db.Project,
+        as: "project",
+        attributes: ["id", "name"],
+      },
+    ],
+    order: [["endTime", "DESC"]],
+  });
+
+  let totalSeconds = 0;
+
+  const taskList = tasks.map((task) => {
+    const seconds = task.hoursTaken || 0;
+    totalSeconds += seconds;
+
+    return {
+      id: task.id,
+      title: task.title,
+      type: task.type,
+      priority: task.priority,
+      status: task.status,
+      assignee: task.assignee?.name || "Unassigned",
+      project: task.project?.name || null,
+      completedAt: task.endTime,
+      hoursWorked: Number((seconds / 3600).toFixed(2)), // convert seconds → hours
+      estimatedTime: task?.estimatedTime,
+    };
+  });
+
+  return {
+    projectId,
+    type: type || "all",
+    totalTasks: taskList.length,
+    totalHours: Number((totalSeconds / 3600).toFixed(2)),
+    tasks: taskList,
+  };
+};
+
