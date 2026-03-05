@@ -3,17 +3,19 @@ import { db } from "../../config/database.js";
 import { Op, Sequelize } from "sequelize";
 
 export const createTaskService = async (data, user, assigneeName) => {
-  const { title, description, priority, assigneeId, projectId } = data;
+  const { title, description,type, priority, assigneeId, projectId,estimatedTime, } = data;
 
   return await db.Task.create({
     title,
     description,
+    type,
     priority,
     assigneeId,
     reporterId: user?.id,
     status: "backlog",
     name: assigneeName,
     projectId,
+    estimatedTime: type === "rc" ? Number(estimatedTime) : null,
   });
 };
 
@@ -295,7 +297,7 @@ export const getMonthlyReportService = async (range, userId, projectId) => {
 
     // hoursTaken assumed in SECONDS
     if (task.hoursTaken && task.hoursTaken > 0) {
-      const hours = task.hoursTaken / 3600;
+      const hours = task.hoursTaken/3600;
       emp.hoursWorked += hours;
       totalHours += hours;
     }
@@ -505,6 +507,8 @@ export const getUserTasksReportService = async ({
       id: task.id,
       title: task.title,
       status: task.status,
+      type: task.type,                 // ✅ NEW
+      estimatedTime: task.estimatedTime, // ✅ NEW
       project: task.project?.name || null,
       hoursWorked: Number(hours.toFixed(2)),
       completedAt: task.endTime,
@@ -521,14 +525,12 @@ export const getUserTasksReportService = async ({
 };
 
 
-
-
-
 export const getUserTasksFullDetailsService = async ({
   userId,
   projectId,
   status,
   priority,
+   type,
   startDate,
   endDate,
 }) => {
@@ -540,6 +542,7 @@ export const getUserTasksFullDetailsService = async ({
 
   if (status) where.status = status;
   if (priority) where.priority = priority;
+  if (type) where.type = type;
 
   if (startDate && endDate) {
     where.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
@@ -558,7 +561,6 @@ export const getUserTasksFullDetailsService = async ({
 
   return tasks;
 };
-
 
 
 export const getInvoiceReportService = async ({
@@ -624,4 +626,3 @@ export const getInvoiceReportService = async ({
     tasks: taskList,
   };
 };
-
