@@ -20,7 +20,7 @@ import { Op } from "sequelize";
 
 export const createTask = async (req, res) => {
   try {
-    const { title, description, type, priority, assigneeId, projectId } = req.body;
+    const { title, description, type, priority, assigneeId, projectId,estimatedTime } = req.body;
     const name = await getUserById(assigneeId);
     const assigneeName = name?.name || "Unassigned";
     console.log(projectId, "projectId");
@@ -288,7 +288,6 @@ export const getUserTasksReport = async (req, res) => {
 
 
 
-
 export const getUserTasksFullDetailsController = async (req, res) => {
   try {
     const { userId, projectId, status, priority, startDate, endDate } = req.query;
@@ -301,6 +300,7 @@ export const getUserTasksFullDetailsController = async (req, res) => {
     const tasks = await getUserTasksFullDetailsService({
       userId: userId ? parseInt(userId) : null, // null means all users
       projectId: parseInt(projectId),
+      type, 
       status,
       priority,
       startDate,
@@ -316,7 +316,6 @@ export const getUserTasksFullDetailsController = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
-
 
 
 // invoice page
@@ -352,6 +351,4 @@ export const getInvoiceReportController = async (req, res) => {
     });
   }
 };
-
-
 
