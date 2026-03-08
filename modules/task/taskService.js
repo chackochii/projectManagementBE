@@ -530,7 +530,7 @@ export const getUserTasksFullDetailsService = async ({
   projectId,
   status,
   priority,
-   type,
+  //  type,
   startDate,
   endDate,
 }) => {
@@ -542,7 +542,7 @@ export const getUserTasksFullDetailsService = async ({
 
   if (status) where.status = status;
   if (priority) where.priority = priority;
-  if (type) where.type = type;
+  // if (type) where.type = type;
 
   if (startDate && endDate) {
     where.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
