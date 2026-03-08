@@ -300,7 +300,7 @@ export const getUserTasksFullDetailsController = async (req, res) => {
     const tasks = await getUserTasksFullDetailsService({
       userId: userId ? parseInt(userId) : null, // null means all users
       projectId: parseInt(projectId),
-      type, 
+      // type, 
       status,
       priority,
       startDate,
