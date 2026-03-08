@@ -62,6 +62,19 @@ export default (sequelize) => {
         type: DataTypes.ENUM("active", "suspended", "pending", "blocked"),
         defaultValue: "active",
       },
+      hourlyRate: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0,
+        comment: "Cost per hour used for project cost calculation"
+      },
+
+      // 🔹 OPTIONAL (if salaried employees exist)
+      monthlySalary: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+        comment: "Optional monthly salary if not hourly"
+      }
     },
     { 
       tableName: "users", 
@@ -69,7 +82,20 @@ export default (sequelize) => {
     }
   );
 
-  User.associate = (db) => {};
+  User.associate = (db) => {
+    
+    User.hasMany(db.Task, {
+    foreignKey: "assigneeId",
+    as: "assignedTasks",
+  });
+
+  // User → Tasks created/reported by the employee
+  User.hasMany(db.Task, {
+    foreignKey: "reporterId",
+    as: "reportedTasks",
+  });
+
+  };
 
   return User;
 };
