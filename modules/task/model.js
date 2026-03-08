@@ -24,6 +24,18 @@ export default (sequelize) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      type: {
+        type: DataTypes.ENUM("task", "bug", "story", "rc"),
+        allowNull: false,
+        defaultValue: "task",
+      },
+
+      estimatedTime: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+        defaultValue: 0,
+        comment: "Estimated effort in hours",
+      },
 
       status: {
         type: DataTypes.ENUM(
