@@ -24,6 +24,7 @@ router.patch("/unassign", authMiddleware, unassignTask);
 router.get("/user-tasks", authMiddleware, getUserTasksReport );
 
 router.get("/tasksDetails", authMiddleware, getUserTasksFullDetailsController )
+router.get("/invoice-report", authMiddleware, getInvoiceReportController);
 
 
 
