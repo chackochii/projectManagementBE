@@ -4,6 +4,7 @@ import {
   getProjectByIdService,
   updateProjectService,
   deleteProjectService,
+  getProjectCostService,
 } from "./project.service.js";
 
 export const createProject = async (req, res) => {
@@ -88,3 +89,27 @@ export const deleteProject = async (req, res) => {
   }
 };
 
+// cost estimate api 
+export const getProjectCost = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    if (!projectId) {
+      return res.status(400).json({
+        message: "Project ID is required",
+      });
+    }
+
+    const costData = await getProjectCostService(projectId);
+
+    res.status(200).json({
+      message: "Project cost fetched successfully",
+      data: costData,
+    });
+  } catch (err) {
+    console.error("Project Cost Error:", err);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
