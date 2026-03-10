@@ -22,7 +22,7 @@ const generateToken = (user) => {
 
 export const createUser = async (data) => {
     const User = getUserModel(); 
-  const { name, email, password, role, address, phone, identification } = data;
+  const { name, email, password, role, address, phone, identification,hourlyRate,monthlySalary } = data;
 
   const exists = await User.findOne({ where: { email } });
   if (exists) throw new Error("Email already exists");
@@ -37,6 +37,8 @@ export const createUser = async (data) => {
     address,
     phone,
     identification,
+    hourlyRate: hourlyRate || 0,
+    monthlySalary: monthlySalary || null
   });
 };
 
