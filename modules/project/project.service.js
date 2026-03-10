@@ -76,3 +76,51 @@ export const deleteProjectService = async (id) => {
   return true;
 };
 
+
+// project cost projection api (in admin page called cost estimation)
+
+export const getProjectCostService = async (projectId) => {
+  const Task = db.Task;
+  const User = db.User;
+
+  const tasks = await Task.findAll({
+    where: { projectId },
+    attributes: ["id", "title", "hoursTaken"],
+    include: [
+      {
+        model: User,
+        as: "assignee",
+        attributes: ["id", "name", "hourlyRate"],
+      },
+    ],
+  });
+
+  let totalCost = 0;
+  let totalHours = 0;
+
+  const taskCosts = tasks.map((task) => {
+    const hours = task.hoursTaken || 0;
+    const rate = task.assignee?.hourlyRate || 0;
+
+    const cost = hours/3600 * rate;
+
+    totalHours += hours;
+    totalCost += cost;
+
+    return {
+      taskId: task.id,
+      taskTitle: task.title,
+      employee: task.assignee?.name || "Unassigned",
+      hours,
+      rate,
+      cost,
+    };
+  });
+
+  return {
+    totalHours,
+    totalCost,
+    tasks: taskCosts,
+  };
+};
+
