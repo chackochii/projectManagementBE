@@ -16,7 +16,7 @@ const generateToken = (user) => {
       role: user.role,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: "17d" }
   );
 };
 
@@ -55,6 +55,32 @@ export const loginUser = async (email, password) => {
     console.log("Password match successful for user:", user.email);
   }
   if (!match) throw new Error("Invalid email or password");
+
+  const token = generateToken(user);
+
+  return { user, token };
+};
+
+export const clientLoginUser = async (email, password) => {
+  const User = getUserModel();
+
+  const user = await User.findOne({
+    where: {
+      email,
+      status: "active",
+      role: "client"
+    }
+  });
+
+  if (!user) {
+    throw new Error("Client account not found");
+  }
+
+  const match = await bcrypt.compare(password, user.password);
+
+  if (!match) {
+    throw new Error("Invalid email or password");
+  }
 
   const token = generateToken(user);
 
