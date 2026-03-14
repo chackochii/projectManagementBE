@@ -1,7 +1,7 @@
 import swaggerJSDoc from "swagger-jsdoc";
 
 const BASE_URL =
-  process.env.BASE_URL || `http://localhost:${process.env.PORT || 8000}`;
+  process.env.BASE_URL || "https://tsuite.tortillon.net";
 
 const options = {
   definition: {
