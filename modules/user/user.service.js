@@ -50,6 +50,10 @@ export const loginUser = async (email, password) => {
   }
   if (!user) throw new Error("Invalid email or password");
 
+  if (user.role === "client") {
+    throw new Error("Clients are not allowed to login to this system");
+  }
+
   const match = await bcrypt.compare(password, user.password);
   if(match){
     console.log("Password match successful for user:", user.email);
