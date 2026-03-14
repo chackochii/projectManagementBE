@@ -50,6 +50,7 @@ export default (sequelize) => {
 
       role: {
         type: DataTypes.ENUM(
+          "client",
           "developer",
           "designer",
           "project_manager",
