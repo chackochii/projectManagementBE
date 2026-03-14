@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/database.js";
 import indexRoutes from "./routes/index.js";
 import { globalLimiter } from "./middleware/rateLimiter.js";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swaagger.js";
 
 dotenv.config();
 
