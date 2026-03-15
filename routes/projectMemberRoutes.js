@@ -75,6 +75,61 @@ router.post("/:projectId/add-user", authMiddleware, addUserToProject);
 
 router.get("/:projectId/members", authMiddleware, getProjectMembers);
 
+
+/**
+ * @swagger
+ * /project-members/user/{userId}/projects:
+ *   get:
+ *     summary: Get all projects assigned to a user
+ *     tags: [Project Members]
+ *     description: Returns all projects where the user is a member
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         description: ID of the user
+ *         schema:
+ *           type: integer
+ *           example: 2
+ *     responses:
+ *       200:
+ *         description: List of projects assigned to the user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       name:
+ *                         type: string
+ *                         example: Website Redesign
+ *                       clientName:
+ *                         type: string
+ *                         example: Acme Corp
+ *                       status:
+ *                         type: string
+ *                         example: active
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *       400:
+ *         description: userId is required
+ *       500:
+ *         description: Server error
+ */
+
 router.get("/user/:userId/projects", authMiddleware, getProjectsForUser);
 router.delete("/:projectId/remove-user/:userId", authMiddleware, removeUserFromProject);
 
