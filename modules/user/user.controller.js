@@ -27,23 +27,6 @@ export const loginUser = async (req, res) => {
   }
 };
 
-export const clientLoginUser = async (req, res) => {
-  try {
-    console.log("HIT /users/client-login");
-
-    const { email, password } = req.body;
-
-    const data = await userService.clientLoginUser(email, password);
-
-    res.json({
-      message: "Client login successful",
-      token: data.token,
-      user: data.user,
-    });
-  } catch (err) {
-    res.status(401).json({ error: err.message });
-  }
-};
 
 export const getUsers = async (req, res) => {
   const users = await userService.getUsers();
