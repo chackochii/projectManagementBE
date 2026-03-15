@@ -50,10 +50,6 @@ export const loginUser = async (email, password) => {
   }
   if (!user) throw new Error("Invalid email or password");
 
-  if (user.role === "client") {
-    throw new Error("Clients are not allowed to login to this system");
-  }
-
   const match = await bcrypt.compare(password, user.password);
   if(match){
     console.log("Password match successful for user:", user.email);
@@ -65,31 +61,6 @@ export const loginUser = async (email, password) => {
   return { user, token };
 };
 
-export const clientLoginUser = async (email, password) => {
-  const User = getUserModel();
-
-  const user = await User.findOne({
-    where: {
-      email,
-      status: "active",
-      role: "client"
-    }
-  });
-
-  if (!user) {
-    throw new Error("Client account not found");
-  }
-
-  const match = await bcrypt.compare(password, user.password);
-
-  if (!match) {
-    throw new Error("Invalid email or password");
-  }
-
-  const token = generateToken(user);
-
-  return { user, token };
-};
 
 export const getUsers = async () => {
   const User = getUserModel();
