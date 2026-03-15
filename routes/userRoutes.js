@@ -1,5 +1,5 @@
 import express from "express";
-import {loginUser, createUser , getUsers, loginAdmin, updateUserStatus,updateUser, deleteUser, clientLoginUser} from "../modules/user/user.controller.js";
+import {loginUser, createUser , getUsers, loginAdmin, updateUserStatus,updateUser, deleteUser} from "../modules/user/user.controller.js";
 import {requireAdmin} from "../middleware/roleMiddleware.js";
 import {authMiddleware} from "../middleware/authMiddleware.js";
 
@@ -83,39 +83,7 @@ export const userRoutes = () => {
 
   router.post("/login",loginUser);
 
-  /**
- * @swagger
- * /users/client-login:
- *   post:
- *     summary: Client login
- *     tags: [Authentication]
- *     description: Login endpoint only for users with role "client"
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/LoginRequest'
- *     responses:
- *       200:
- *         description: Client login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Client login successful
- *                 token:
- *                   type: string
- *                 user:
- *                   $ref: '#/components/schemas/AuthUser'
- *       401:
- *         description: Invalid credentials or user not a client
- */
 
-  router.post("/client-login", clientLoginUser);
   // router.post("/register",authMiddleware, requireAdmin(), createUser);
   router.post("/register", createUser);
   router.get("/", authMiddleware, getUsers);
