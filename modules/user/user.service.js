@@ -66,9 +66,9 @@ export const getUsers = async () => {
   const User = getUserModel();
 
   return await User.findAll({
-    where: {
-      status: 'active'
-    }
+    // where: {
+    //   status: 'active'
+    // }
   });
 };
 
